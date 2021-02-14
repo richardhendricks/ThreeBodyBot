@@ -14,7 +14,7 @@
 # to add music, specify initial conditions, or otherwise tinker...read the code/README and the comments in the code!
 # this has only been tested on Linux (Mint) and Windows 10, so you might run into small additional issues on macOS?
 
-using Plots, Random, Printf, Plots.Measures, Dates
+using Plots, Random, Printf, Plots.Measures, Dates, YAML, DataStructures
 
 function initCondGen() #get random initial conditions for mass/radius, position, and velocity
     function getMass(nBodies) #generate random masses that better reflect actual stellar populations, although not currently using because it's boring
@@ -487,6 +487,9 @@ function main() #pulls everything together, speeds things up to put everything i
     orbitOld = 0
     center = [0.,0.]; vel = [0.,0.]
     ΔCx = 0.;ΔCy = 0.;ΔL = 0.;ΔR = 0.;ΔU = 0.;ΔD = 0.
+    #Initialize YAML output
+    yamlHeader=Dict{Any,Any}("Name"=>"Three Body Problem output YAML file","Version"=>"1.0")
+    yamlData=DataStructures.SortedDict()
     println("energy loss = $((energy[end]-energy[1])/energy[1]*100) %") #anecdotally this is usually very small, but occasionally gets as high as ~1%
     for i=1:333:stop #this makes animation scale ~1 sec/year with other conditions
         GR.inline("png") #added to eneable cron/jobber compatibility, also this makes frames generate WAY faster? Prior to adding this when run from cron/jobber frames would stop generating at 408 for some reason.
@@ -496,6 +499,7 @@ function main() #pulls everything together, speeds things up to put everything i
         future = i+500<stop ? i+500 : i #make sure we don't go past end of data
         posFuture=[plotData[1][future],plotData[2][future],plotData[3][future],plotData[4][future],plotData[5][future],plotData[6][future]] #future pos
         limx,limy,center,orbitOld,ΔCx,ΔCy,ΔL,ΔR,ΔU,ΔD=computeLimits(pos./1.5e11,posFuture./1.5e11,15,m,orbitOld,ΔCx,ΔCy,ΔL,ΔR,ΔU,ΔD) #compute limits in AU, 15 AU padding
+        yamlData[i]=pos
         dx,dy=(limx[2]-limx[1]),(limy[2]-limy[1])
         dx,dy=getRatioRight(ratio,dx,dy) #check ratio
         if listInd>1
@@ -551,7 +555,8 @@ function main() #pulls everything together, speeds things up to put everything i
         frameNum+=1
         closeall() #close plots
     end
-
+    yamlHeader["PositionData"]=(yamlData)
+    YAML.write_file("threeBody.yml",yamlHeader)
     if collisionBool==true #this condition makes 2 seconds of slo-mo right before the collision
         println("making collision cam")
         for i=1:10:600
@@ -690,7 +695,7 @@ end
 main()
 
 #generate the animation!
-#makeAnim() #commented out because I compile the frames in the shell script (see 3BodyShell.sh)
+makeAnim() #commented out because I compile the frames in the shell script (see 3BodyShell.sh)
 
 #you'll want to uncomment the line above to tell the script to just make the animation
 #or you can load the script into a julia terminal with include("threeBodyProb.jl")
