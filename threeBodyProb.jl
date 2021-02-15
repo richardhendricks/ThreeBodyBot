@@ -555,8 +555,6 @@ function main() #pulls everything together, speeds things up to put everything i
         frameNum+=1
         closeall() #close plots
     end
-    yamlHeader["PositionData"]=(yamlData)
-    YAML.write_file("threeBody.yml",yamlHeader)
     if collisionBool==true #this condition makes 2 seconds of slo-mo right before the collision
         println("making collision cam")
         for i=1:10:600
@@ -564,7 +562,8 @@ function main() #pulls everything together, speeds things up to put everything i
             gr(legendfontcolor = plot_color(:white)) #legendfontcolor=:white plot arg broken right now (at least in this backend)
             print("$(@sprintf("%.2f",i/600*100)) % complete\r") #output percent tracker
             pos=[plotData[1][end-(600-i)],plotData[2][end-(600-i)],plotData[3][end-(600-i)],plotData[4][end-(600-i)],plotData[5][end-(600-i)],plotData[6][end-(600-i)]] #current pos
-            posFuture=pos #don't need future position at end
+            posFuture=pos #don't need future position at end 
+            yamlData[stop+i]=pos
             limx,limy,center,orbitOld,ΔCx,ΔCy,ΔL,ΔR,ΔU,ΔD=computeLimits(pos./1.5e11,posFuture./1.5e11,15,m,orbitOld,ΔCx,ΔCy,ΔL,ΔR,ΔU,ΔD) #convert to AU, 10 AU padding
             p=plot(plotData[1][1:33:end-(600-i)]./1.5e11,plotData[2][1:33:end-(600-i)]./1.5e11,label="",linecolor=colors[1],linewidth=2,linealpha=max.((1:33:(i+length(t)-600)) .+ 10000 .- (i+length(t)-600),2500)/10000) #plot orbits up to i
             p=plot!(plotData[3][1:33:end-(600-i)]./1.5e11,plotData[4][1:33:end-(600-i)]./1.5e11,label="",linecolor=colors[2],linewidth=2,linealpha=max.((1:33:(i+length(t)-600)) .+ 10000 .- (i+length(t)-600),2500)/10000) #linealpha argument causes lines to decay
@@ -625,6 +624,7 @@ function main() #pulls everything together, speeds things up to put everything i
             print("$(@sprintf("%.2f",i/15*100)) % complete\r") #output percent tracker
             pos=[plotData[1][end],plotData[2][end],plotData[3][end],plotData[4][end],plotData[5][end],plotData[6][end]] #current pos
             posFuture=pos #don't need future position at end
+            yamlData[stop+600+i]=pos #since we can't use the endpoint more than once, just add 15 fake datapoints
             limx,limy,center,orbitOld,ΔCx,ΔCy,ΔL,ΔR,ΔU,ΔD=computeLimits(pos./1.5e11,posFuture./1.5e11,15,m,orbitOld,ΔCx,ΔCy,ΔL,ΔR,ΔU,ΔD) #convert to AU, 10 AU padding
             p=plot(plotData[1][1:33:end]./1.5e11,plotData[2][1:33:end]./1.5e11,label="",linecolor=colors[1],linewidth=2,linealpha=max.((1:33:(length(t))) .+ 10000 .- (length(t)),2500)/10000) #plot orbits up to i
             p=plot!(plotData[3][1:33:end]./1.5e11,plotData[4][1:33:end]./1.5e11,label="",linecolor=colors[2],linewidth=2,linealpha=max.((1:33:(length(t))) .+ 10000 .- (length(t)),2500)/10000) #linealpha argument causes lines to decay
@@ -678,6 +678,9 @@ function main() #pulls everything together, speeds things up to put everything i
             closeall() #close plots
         end
     end
+    yamlHeader["PositionData"]=(yamlData)
+    yamlHeader["MassData"]=(m[1]./2e30,m[2]./2e30,m[3]./2e30)
+    YAML.write_file("threeBody.yml",yamlHeader)
 end
 
 #this is a function that will generate the animation for you without having to use the command line, works on Linux and Windows (run as administrator), untested on macOS
